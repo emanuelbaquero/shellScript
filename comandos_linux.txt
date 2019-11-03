@@ -1,0 +1,14 @@
+comandos linux 
+
+su 																loguearse como root 
+nano /etc/apt/sources.list										consultar servidores donde se instalan los paquetes
+#deb 															comentarios
+apt-get update 													consultar repositorios que paquete temos disponibles
+exit 															salir de sesion
+ls -l 															ver directorio personal
+sudo -i															ejecutar comandos como root 
+pwd 															ver direcotorio donde estoy parado
+tail /etc/shadow												ver ficheros de contraseñas(solo root)
+ping google.com													ver como va internet en directorio
+clear 															limpiar pantalla
+man 															manual de instrucciones de comandos linux
