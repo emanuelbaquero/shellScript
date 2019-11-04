@@ -26,3 +26,9 @@ ls .															listar elementos del directorio actual (en donde estoy parado
 ls ../musica													listar elementos del directorio musica perteneciente al directorio padre actual
 history															identificadores de comandos en bash
 cd 																ir a directorio personal 
+df -h /home/													muestra en formato "humano" informacion sobre el espacio de la particion donde se encuentre /home/
+du -h /home/													muestra en formato KB,MB,etc el espacio del directorio de forma recursiva
+du -hs															muestra en formato KB,MB,etc el espacio que unicamente ocupa el total de su contenido
+du -hs /*														muestra en formato KB,MB,etc el espacio que ocupan todos los elementos del sistema
+du -hs * | sort -h 												muestra en formato KB,MB,etc el espacio que ocupan todos los elementos del directorio en donde estoy parados y los ordena por peso
+ 
