@@ -1,0 +1,136 @@
+#!/bin/bash 
+
+    HOST='192.168.117.10' 
+    USUARIO='pami_recetas'
+    PASSWD='Ga3RG90P' 
+	
+    echo 1. Comienzo de Script: `date +%Y/%m/%d` > /varios/qamstr/Onco_dwh/logueo_onco.txt												#CARGO LOGUEO
+	
+    echo "2. Ingresando para realizar la bajada de archivos...("`date +%Y/%m/%d`")" >> /varios/qamstr/Onco_dwh/logueo_onco.txt					#CARGO LOGUEO
+	
+	ARCHIVOS_DESCARGADOS=`ls /varios/qamstr/Onco_dwh/onco_download/*Tratamientos*.csv | wc -l`
+	if [ $ARCHIVOS_DESCARGADOS -gt 0 ]
+	then 
+		rm /varios/qamstr/Onco_dwh/onco_download/*Tratamientos*.csv
+	fi 
+	
+	echo "2.5 Descargas existentes eliminadas.." >> /varios/qamstr/Onco_dwh/logueo_onco.txt	#CARGO LOGUEO
+	
+
+	ftp -in $HOST << END_SCRIPT																					
+	user $USUARIO $PASSWD	
+	cd protocolos
+	lcd /varios/qamstr/Onco_dwh/onco_download
+	mget *.csv																									
+	bye
+END_SCRIPT
+
+
+    if ["$?" -le 0]																									#VALIDO SI SE PUDO CONECTAR CORRECTAMENTE
+    then 
+         echo "3. Conexion ftp Fallida: ("`date +%Y/%m/%d`")" > /varios/qamstr/Onco_dwh/valido_conexion_logueo_onco.txt	#REGISTRO EN UN FICHERO QUE FALLO LA CONEXION
+         else
+         echo "3. Conexion ftp Exitosa: ("`date +%Y/%m/%d`")" > /varios/qamstr/Onco_dwh/valido_conexion_logueo_onco.txt	#REGISTRO EN UN FICHERO QUE TUVE EXITO LA CONEXION
+    fi
+	
+	echo "4. Se valida la conexion: ("`date +%Y/%m/%d`")" >> /varios/qamstr/Onco_dwh/logueo_onco.txt						#CARGO LOGUEO
+	
+	VALIDO_CARGA=`cat /varios/qamstr/Onco_dwh/valido_conexion_logueo_onco.txt | grep "Conexion ftp Exitosa" | wc -l`			#BUSCO EL FICHERO EN DONDE CARGUE LA CONEXION
+
+	if [ $VALIDO_CARGA -eq 1 ]																						#VALIDO CONEXION - RETORNA 0 => NO  1 => SI
+	then
+	
+			echo "5. Conexion -ftp- exitosa" >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+			
+			if [ -f /varios/qamstr/Onco_dwh/maximo_id.txt ]
+			then 
+					VAR_MAXIMO=`cat /varios/qamstr/Onco_dwh/maximo_id.txt`
+			else 
+					echo 00000 > /varios/qamstr/Onco_dwh/maximo_id.txt
+					VAR_MAXIMO=`cat /varios/qamstr/Onco_dwh/maximo_id.txt`
+					echo $VAR_MAXIMO > /varios/qamstr/Onco_dwh/logueo_onco.txt
+			fi 
+			
+			echo 6. Se busca el id maximo cargado en el fichero -id_maximo.txt- : `date +%Y/%m/%d` >> /varios/qamstr/Onco_dwh/logueo_onco.txt	#CARGO LOGUEO
+			
+			MAS_UNO=1
+			
+			PRIMER_ID=`expr $VAR_MAXIMO + $MAS_UNO`
+			
+			PRIMER_ID_CEROS=`printf "%05d" $PRIMER_ID`
+			
+			echo "7. El valor del proximo ID para buscar es: "$PRIMER_ID_CEROS >> /varios/qamstr/Onco_dwh/logueo_onco.txt	#CARGO LOGUEO
+			
+			if [ -f /varios/qamstr/Onco_dwh/onco_download/DWTratamientos_*_"$PRIMER_ID_CEROS".csv ] && [ -f /varios/qamstr/Onco_dwh/onco_download/DWTratamientosRenglones_*_"$PRIMER_ID_CEROS".csv ] && [ -f /varios/qamstr/Onco_dwh/onco_download/DWTratamientosEstados_*_"$PRIMER_ID_CEROS".csv ]
+				then 
+					echo "8. Actualizacion de ficheros ONCO...("`date +%Y/%m/%d`")" >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+	
+			
+					EXISTE_FICHERO_CAB=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientos_*_"$PRIMER_ID_CEROS".csv 2>/dev/null | wc -l`
+					
+					EXISTE_FICHERO_DET=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosRenglones_*_"$PRIMER_ID_CEROS".csv 2>/dev/null | wc -l`
+					
+					EXISTE_FICHERO_EST=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosEstados_*_"$PRIMER_ID_CEROS".csv 2>/dev/null | wc -l`
+					
+					CONTADOR=1	
+					UNO=1
+						
+					while [ $EXISTE_FICHERO_CAB -eq 1 ] && [ $EXISTE_FICHERO_DET -eq 1 ] && [ $EXISTE_FICHERO_EST -eq 1 ]										#SACO TODOS LOS FICHEROS DE ESTADOS
+					do 
+							CONTADOR=`expr $CONTADOR + $UNO` 
+							echo "CONTADOR="$CONTADOR >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							FECHA_FICHERO_CABECERA=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientos_*_"$PRIMER_ID_CEROS".csv | awk 'BEGIN{FS="_"}{print $4}'`
+							echo "FECHA DEL FICHERO CABECERA CON ID:("$PRIMER_ID_CEROS"): "$FECHA_FICHERO_CABECERA >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							FECHA_FICHERO_DETALLE=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosRenglones_*_"$PRIMER_ID_CEROS".csv | awk 'BEGIN{FS="_"}{print $4}'`
+							echo "FECHA DEL FICHERO DETALLE CON ID:("$PRIMER_ID_CEROS"): "$FECHA_FICHERO_CABECERA >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							FECHA_FICHERO_ESTADOS=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosEstados_*_"$PRIMER_ID_CEROS".csv | awk 'BEGIN{FS="_"}{print $4}'`	
+							echo "FECHA DEL FICHERO ESTADOS CON ID:("$PRIMER_ID_CEROS"): "$FECHA_FICHERO_CABECERA >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							
+							
+							RUTA_FICHERO_CABECERA=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientos_"$FECHA_FICHERO_CABECERA"_"$PRIMER_ID_CEROS".csv`
+							echo "LA RUTA DEL FICHERO CABECERA CON ID ("$PRIMER_ID_CEROS") es: "$RUTA_FICHERO_CABECERA >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							RUTA_FICHERO_DETALLE=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosRenglones_"$FECHA_FICHERO_DETALLE"_"$PRIMER_ID_CEROS".csv`
+							echo "LA RUTA DEL FICHERO DETALLE CON ID ("$PRIMER_ID_CEROS") es: "$RUTA_FICHERO_DETALLE >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							RUTA_FICHERO_ESTADOS=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosEstados_"$FECHA_FICHERO_ESTADOS"_"$PRIMER_ID_CEROS".csv`
+							echo "LA RUTA DEL FICHERO DETALLE CON ID ("$PRIMER_ID_CEROS") es: "$RUTA_FICHERO_ESTADOS >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							#AGREGO LINEAS EN TABLA ONCO
+							
+							sed 's/$/ /varios/qamstr/ENVIOS_COFA/DWTratamientos_20191010_00001.csv;/' /varios/qamstr/ENVIOS_COFA/DWTratamientos_20191010_00001.csv | tail -n +2 >> ONCO_CAB_AUX.csv
+							
+							sed 's/$/'$RUTA_FICHERO_CABECERA';/' $RUTA_FICHERO_CABECERA | tail -n +2 >> ONCO_CAB_AUX.csv
+							sed 's/$/'$RUTA_FICHERO_DETALLE';/' $RUTA_FICHERO_DETALLE 	| tail -n +2 >> ONCO_DET_AUX.csv
+							sed 's/$/'$RUTA_FICHERO_ESTADOS';/' $RUTA_FICHERO_ESTADOS 	| tail -n +2 >> ONCO_EST_AUX.csv
+							
+							echo $PRIMER_ID_CEROS > /varios/qamstr/Onco_dwh/maximo_id.txt	
+							
+							VAR_MAXIMO=`cat /varios/qamstr/Onco_dwh/maximo_id.txt`
+							PRIMER_ID=`expr $VAR_MAXIMO + $MAS_UNO`
+							PRIMER_ID_CEROS=`printf "%05d" $PRIMER_ID`
+							
+							EXISTE_FICHERO_CAB=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientos_*_"$PRIMER_ID_CEROS".csv | wc -l`
+							echo "FICHERO CABACERA CON ID ("$PRIMER_ID_CEROS") EXISTE? -> "$EXISTE_FICHERO_CAB >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							EXISTE_FICHERO_DET=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosRenglones_*_"$PRIMER_ID_CEROS".csv | wc -l`
+							echo "FICHERO DETALLE CON ID("$PRIMER_ID_CEROS") EXISTE? -> "$EXISTE_FICHERO_DET >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+							
+							EXISTE_FICHERO_EST=`ls /varios/qamstr/Onco_dwh/onco_download/DWTratamientosEstados_*_"$PRIMER_ID_CEROS".csv | wc -l`
+							echo "FICHERO ESTADO CON ID ("$PRIMER_ID_CEROS") EXISTE? -> "$EXISTE_FICHERO_EST >> /varios/qamstr/Onco_dwh/logueo_onco.txt #CARGO_LOGUEO
+					done
+					
+					echo "9.Se han cargado un total de "$CONTADOR" ficheros de CABECERA, DETALLE y ESTADOS" >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+					echo "10. Fin de proceso" >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+		    else 
+					echo "No se han cargado ficheros..." >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+		    fi
+	else	
+			echo "5. Conexion -ftp- fallida" >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+			echo "6. Fin de proceso" >> /varios/qamstr/Onco_dwh/logueo_onco.txt
+	fi							
+			
